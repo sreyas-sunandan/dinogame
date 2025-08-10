@@ -94,17 +94,70 @@ function createCactus() {
   cactusSpawnTimer = setTimeout(createCactus, nextCactusTime);
 }
 
-// Collision detection
+// Collision detection using Dino's clip-path shape
 function isCollision(dinoElem, cactusElem) {
+  const gameRect = document.getElementById("game").getBoundingClientRect();
   const dinoRect = dinoElem.getBoundingClientRect();
   const cactusRect = cactusElem.getBoundingClientRect();
 
-  return (
-    dinoRect.left < cactusRect.right &&
-    dinoRect.right > cactusRect.left &&
-    dinoRect.top < cactusRect.bottom &&
-    dinoRect.bottom > cactusRect.top
-  );
+  // Convert to game-area coordinates
+  const dinoX = dinoRect.left - gameRect.left;
+  const dinoY = dinoRect.top - gameRect.top;
+  const cactusX = cactusRect.left - gameRect.left;
+  const cactusY = cactusRect.top - gameRect.top;
+
+  // Dino's polygon based on your CSS clip-path
+  const dinoPoints = [
+    [dinoX + dinoRect.width * 0.5, dinoY + dinoRect.height],     // bottom center
+    [dinoX,                      dinoY + dinoRect.height * 0.2], // left mid
+    [dinoX + dinoRect.width,     dinoY],                         // top right
+    [dinoX + dinoRect.width * 0.75, dinoY + dinoRect.height]     // bottom right
+  ];
+
+  // Cactus rectangle as polygon
+  const cactusPoints = [
+    [cactusX, cactusY],
+    [cactusX + cactusRect.width, cactusY],
+    [cactusX + cactusRect.width, cactusY + cactusRect.height],
+    [cactusX, cactusY + cactusRect.height]
+  ];
+
+  // Helper: Check polygon intersection
+  function polygonsIntersect(a, b) {
+    function doPolygonsIntersect(p1, p2) {
+      const polygons = [p1, p2];
+      for (let i = 0; i < polygons.length; i++) {
+        const polygon = polygons[i];
+        for (let i1 = 0; i1 < polygon.length; i1++) {
+          const i2 = (i1 + 1) % polygon.length;
+          const p1x = polygon[i1][0], p1y = polygon[i1][1];
+          const p2x = polygon[i2][0], p2y = polygon[i2][1];
+
+          const normal = { x: p1y - p2y, y: p2x - p1x };
+
+          let minA = null, maxA = null;
+          for (const p of p1) {
+            const projected = normal.x * p[0] + normal.y * p[1];
+            if (minA === null || projected < minA) minA = projected;
+            if (maxA === null || projected > maxA) maxA = projected;
+          }
+
+          let minB = null, maxB = null;
+          for (const p of p2) {
+            const projected = normal.x * p[0] + normal.y * p[1];
+            if (minB === null || projected < minB) minB = projected;
+            if (maxB === null || projected > maxB) maxB = projected;
+          }
+
+          if (maxA < minB || maxB < minA) return false;
+        }
+      }
+      return true;
+    }
+    return doPolygonsIntersect(a, b);
+  }
+
+  return polygonsIntersect(dinoPoints, cactusPoints);
 }
 
 // Game over

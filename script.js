@@ -43,10 +43,16 @@ function updateDino() {
 }
 
 // Create cactus (with random image)
+// Difficulty settings
+let minSpawnTime = 500;   // Minimum delay in ms
+let maxSpawnTime = 3000;  // Starting maximum delay
+let burstMode = false;    // When true → spawn faster
+let burstChance = 0.2;    // 20% chance to trigger burst mode after each cactus
+
 function createCactus() {
   const now = Date.now();
   if (now - lastSpawnTime < 800) {
-    cactusSpawnTimer = setTimeout(createCactus, 500);
+    cactusSpawnTimer = setTimeout(createCactus, 200);
     return;
   }
   lastSpawnTime = now;
@@ -81,7 +87,11 @@ function createCactus() {
       cactus.remove();
       score++;
       scoreDisplay.innerText = `Score: ${score}`;
-      if (score % 5 === 0) speed += 0.5; // Increase difficulty
+
+      if (score % 5 === 0) {
+        speed += 0.5; // Increase cactus movement speed
+        maxSpawnTime = Math.max(1000, maxSpawnTime - 200); // Reduce spawn delay
+      }
     }
 
     if (isCollision(dino, cactus)) {
@@ -90,9 +100,21 @@ function createCactus() {
     }
   }, 20);
 
-  const nextCactusTime = Math.random() * 2000 + 1000;
+  // Decide if we toggle burst mode
+  if (Math.random() < burstChance) {
+    burstMode = !burstMode; // Toggle between fast and normal
+  }
+
+  // If burst mode is active → spawn faster
+  let adjustedMin = burstMode ? minSpawnTime : minSpawnTime + 500;
+  let adjustedMax = burstMode ? maxSpawnTime - 500 : maxSpawnTime;
+
+  const nextCactusTime = Math.random() * (adjustedMax - adjustedMin) + adjustedMin;
   cactusSpawnTimer = setTimeout(createCactus, nextCactusTime);
 }
+
+
+
 
 // Collision detection using Dino's clip-path shape
 function isCollision(dinoElem, cactusElem) {
